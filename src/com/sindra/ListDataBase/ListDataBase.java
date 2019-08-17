@@ -35,18 +35,26 @@ public class ListDataBase implements DataBase{
     }
 
     @Override
-    public void del(String[] key) {
-
+    public void del(String[] keys) {
+        for (String key : keys) {
+            data.remove(getNode(key));
+        }
     }
 
     @Override
     public int dbSize() {
-        return 0;
+        return data.size();
     }
 
     @Override
-    public void incr() {
-        data.add(null);
+    public void incr(String key) {
+        Node node = getNode(key);
+        if(node != null && node.keyValue != null) {
+            int keyValue = Integer.parseInt(node.keyValue) + 1;
+            node.keyValue = Integer.toString(keyValue);
+        } else {
+            set(key, "1");
+        }
     }
 
     private Node getNode(String key) {

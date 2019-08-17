@@ -25,22 +25,21 @@ class ListDataBaseTest {
 
     @Test
     void shouldHaveSizeOne() {
-        dataBase.incr();
+        dataBase.set("key", "1");
         ArrayList list = (ArrayList) dataBase.getData();
         assertEquals(1, list.size());
     }
 
     @Test
     void shouldSetKeyValue() {
-        dataBase.incr();
-        dataBase.set("key", "value");
-        dataBase.set("key1", "value1");
+        dataBase.set("key1", "1");
+        dataBase.set("key2", "2");
         for (Object node : (ArrayList) dataBase.getData()) {
             if (node != null) {
                 try {
                     Node castedNode = (Node) node;
 
-                    if (castedNode.key.equals("key1") && castedNode.keyValue.equals("value1")) {
+                    if (castedNode.key.equals("key2") && castedNode.keyValue.equals("2")) {
                         assert (true);
                         return;
                     }
@@ -54,15 +53,14 @@ class ListDataBaseTest {
 
     @Test
     void shouldSetRepeatedKeyWithChangedValue() {
-        dataBase.incr();
-        dataBase.set("key", "value");
-        dataBase.set("key", "value1");
+        dataBase.set("key1", "1");
+        dataBase.set("key1", "2");
         for (Object node : (ArrayList) dataBase.getData()) {
             if (node != null) {
                 try {
                     Node castedNode = (Node) node;
 
-                    if (castedNode.key.equals("key") && castedNode.keyValue.equals("value1")) {
+                    if (castedNode.key.equals("key1") && castedNode.keyValue.equals("2")) {
                         assert (true);
                         return;
                     }
@@ -78,5 +76,53 @@ class ListDataBaseTest {
     void shouldGetDataValue3() {
         dataBase.set("key", "3");
         assertEquals("3", dataBase.get("key"));
+    }
+
+    @Test
+    void shouldGetSizeFour() {
+        dataBase.set("key1", "1");
+        dataBase.set("key2", "2");
+        dataBase.set("key3", "3");
+        dataBase.set("key4", "4");
+
+        assertEquals(4, dataBase.dbSize());
+    }
+
+    @Test
+    void shouldIncreaseKeyValue() {
+        dataBase.set("key1", "1");
+        assertEquals(1, Integer.parseInt(dataBase.get("key1")));
+        dataBase.incr("key1");
+        assertEquals(2, Integer.parseInt(dataBase.get("key1")));
+    }
+
+    @Test
+    void shouldIncreaseNotFoundKey() {
+        dataBase.incr("key1");
+        assertEquals(1, Integer.parseInt(dataBase.get("key1")));
+    }
+
+    @Test
+    void shouldDeleteOneKey() {
+        dataBase.set("key1", "1");
+        dataBase.set("key2", "2");
+        dataBase.set("key3", "3");
+        dataBase.set("key4", "4");
+
+        dataBase.del(new String[]{"key1"});
+
+        assertEquals(3, dataBase.dbSize());
+    }
+
+    @Test
+    void shouldDeleteMultipleKeys() {
+        dataBase.set("key1", "1");
+        dataBase.set("key2", "2");
+        dataBase.set("key3", "3");
+        dataBase.set("key4", "4");
+
+        dataBase.del(new String[]{"key1", "key2"});
+
+        assertEquals(2, dataBase.dbSize());
     }
 }

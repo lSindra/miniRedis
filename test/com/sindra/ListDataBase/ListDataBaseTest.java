@@ -4,7 +4,8 @@ import com.sindra.DataBase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -17,61 +18,42 @@ class ListDataBaseTest {
         dataBase = new ListDataBase();
     }
 
+    //SET
     @Test
     void shouldBeEmpty() {
-        ArrayList list = (ArrayList) dataBase.getData();
-        assert(list.isEmpty());
+        ConcurrentHashMap data = (ConcurrentHashMap) dataBase.getData();
+        assert(data.isEmpty());
     }
 
     @Test
     void shouldHaveSizeOne() {
         dataBase.set("key", "1");
-        ArrayList list = (ArrayList) dataBase.getData();
-        assertEquals(1, list.size());
+        ConcurrentHashMap data = (ConcurrentHashMap) dataBase.getData();
+        assertEquals(1, data.size());
     }
 
     @Test
     void shouldSetKeyValue() {
         dataBase.set("key1", "1");
         dataBase.set("key2", "2");
-        for (Object node : (ArrayList) dataBase.getData()) {
-            if (node != null) {
-                try {
-                    Node castedNode = (Node) node;
-
-                    if (castedNode.key.equals("key2") && castedNode.keyValue.equals("2")) {
-                        assert (true);
-                        return;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        assert(false);
+        ConcurrentHashMap data = (ConcurrentHashMap) dataBase.getData();
+        AtomicReference key1 = (AtomicReference) data.get("key1");
+        AtomicReference key2 = (AtomicReference) data.get("key2");
+        if(key1.get().equals("1") && key2.get().equals("2")) assert(true);
+        else assert(false);
     }
 
     @Test
     void shouldSetRepeatedKeyWithChangedValue() {
         dataBase.set("key1", "1");
         dataBase.set("key1", "2");
-        for (Object node : (ArrayList) dataBase.getData()) {
-            if (node != null) {
-                try {
-                    Node castedNode = (Node) node;
-
-                    if (castedNode.key.equals("key1") && castedNode.keyValue.equals("2")) {
-                        assert (true);
-                        return;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }
-        assert(false);
+        ConcurrentHashMap data = (ConcurrentHashMap) dataBase.getData();
+        AtomicReference key1 = (AtomicReference) data.get("key1");
+        if(key1.get().equals("2")) assert(true);
+        else assert(false);
     }
 
+    //GET
     @Test
     void shouldGetDataValue3() {
         dataBase.set("key", "3");
@@ -88,12 +70,15 @@ class ListDataBaseTest {
         assertEquals(4, dataBase.dbSize());
     }
 
+    //INCREMENT
     @Test
     void shouldIncreaseKeyValue() {
         dataBase.set("key1", "1");
         assertEquals(1, Integer.parseInt(dataBase.get("key1")));
         dataBase.incr("key1");
         assertEquals(2, Integer.parseInt(dataBase.get("key1")));
+        dataBase.incr("key1");
+        assertEquals(3, Integer.parseInt(dataBase.get("key1")));
     }
 
     @Test
@@ -102,6 +87,7 @@ class ListDataBaseTest {
         assertEquals(1, Integer.parseInt(dataBase.get("key1")));
     }
 
+    //DELETE
     @Test
     void shouldDeleteOneKey() {
         dataBase.set("key1", "1");

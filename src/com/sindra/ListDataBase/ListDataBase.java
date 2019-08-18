@@ -1,43 +1,41 @@
 package com.sindra.ListDataBase;
 
 import com.sindra.DataBase;
-import java.util.ArrayList;
 
-public class ListDataBase implements DataBase{
-    private ArrayList<Node> data;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+
+public class ListDataBase implements DataBase {
+    private final ConcurrentHashMap<String, AtomicReference<String>> data;
 
     ListDataBase() {
-        this.data = new ArrayList<>();
+        this.data = new ConcurrentHashMap<>();
     }
 
     @Override
-    public Object getData() {
+    public final Object getData() {
         return data;
     }
 
     @Override
     public void set(String key, String keyValue) {
-        Node foundNode = getNode(key);
-        if(foundNode != null) {
-            foundNode.keyValue = keyValue;
+        AtomicReference<String> referenceToString = data.get(key);
+        if(referenceToString != null) {
+            referenceToString.set(keyValue);
         } else {
-            data.add(new Node(key, keyValue));
+            data.put(key, new AtomicReference<>(keyValue));
         }
     }
 
     @Override
     public String get(String key) {
-        Node node = getNode(key);
-        if(node != null) {
-            return node.keyValue;
-        }
-        return null;
+        return data.get(key).get();
     }
 
     @Override
     public void del(String[] keys) {
         for (String key : keys) {
-            data.remove(getNode(key));
+            data.remove(key);
         }
     }
 
@@ -48,21 +46,11 @@ public class ListDataBase implements DataBase{
 
     @Override
     public void incr(String key) {
-        Node node = getNode(key);
-        if(node != null && node.keyValue != null) {
-            int keyValue = Integer.parseInt(node.keyValue) + 1;
-            node.keyValue = Integer.toString(keyValue);
+        AtomicReference<String> reference = data.get(key);
+        if(reference != null) {
+            reference.getAndUpdate(oldValue -> String.valueOf(Integer.parseInt(oldValue) + 1));
         } else {
             set(key, "1");
         }
-    }
-
-    private Node getNode(String key) {
-        for (Node node : data) {
-            if (node != null && node.key.equals(key)) {
-                return node;
-            }
-        }
-        return null;
     }
 }

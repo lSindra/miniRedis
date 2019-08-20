@@ -1,9 +1,12 @@
 package com.sindra.ListDataBase;
 
 import com.sindra.DataBase;
+import com.sindra.ListDataBase.DataTypes.SetMembers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -110,5 +113,105 @@ class ListDataBaseTest {
         dataBase.del(new String[]{"key1", "key2"});
 
         assertEquals(2, dataBase.dbSize());
+    }
+
+    //ZADD
+    @Test
+    void shouldCreateSortedSetWithMembers() {
+        Collection<SetMembers> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMembers("1", "uno"));
+        membersCollection.add(new SetMembers("2", "uno2"));
+        membersCollection.add(new SetMembers("3", "uno3"));
+
+        dataBase.zadd("key1", membersCollection);
+
+        ConcurrentHashMap data = (ConcurrentHashMap) dataBase.getData();
+        AtomicReference<Collection<SetMembers>> key = (AtomicReference<Collection<SetMembers>>) data.get("key1");
+        assertEquals(3, key.get().size());
+    }
+
+    @Test
+    void shouldCreateAndUpdateSortedSetWithMembers() {
+        Collection<SetMembers> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMembers("1", "uno"));
+        membersCollection.add(new SetMembers("1", "uno2"));
+        membersCollection.add(new SetMembers("2", "uno2"));
+
+        dataBase.zadd("key1", membersCollection);
+
+        ConcurrentHashMap data = (ConcurrentHashMap) dataBase.getData();
+        AtomicReference<Collection<SetMembers>> key = (AtomicReference<Collection<SetMembers>>) data.get("key1");
+
+        assertEquals(1, data.size());
+        assertEquals(3, key.get().size());
+
+        membersCollection.add(new SetMembers("2", "uno2"));
+
+        dataBase.zadd("key1", membersCollection);
+
+        assertEquals(1, data.size());
+        assertEquals(4, key.get().size());
+    }
+
+    @Test
+    void sortedSetShouldBeSortedCorrectly() {
+        Collection<SetMembers> membersCollection = new ArrayList<>();
+        SetMembers uno = new SetMembers("1", "uno");
+        SetMembers uno2 = new SetMembers("2", "uno2");
+        SetMembers uno3 = new SetMembers("2", "uno3");
+        SetMembers uno4 = new SetMembers("3", "uno4");
+        SetMembers uno5 = new SetMembers("5", "uno5");
+
+        membersCollection.add(uno5);
+        membersCollection.add(uno2);
+        membersCollection.add(uno3);
+        membersCollection.add(uno4);
+        membersCollection.add(uno);
+
+        dataBase.zadd("key1", membersCollection);
+
+        ConcurrentHashMap data = (ConcurrentHashMap) dataBase.getData();
+        AtomicReference<Collection<SetMembers>> key = (AtomicReference<Collection<SetMembers>>) data.get("key1");
+        assertEquals(5, key.get().size());
+
+        Object[] members = key.get().toArray();
+        assert(members[0].equals(uno));
+        assert(members[1].equals(uno2));
+        assert(members[2].equals(uno3));
+        assert(members[3].equals(uno4));
+        assert(members[4].equals(uno5));
+    }
+
+    //zcard
+    @Test
+    void shouldGetCorrectSortedSetSize() { //todo taking too long, 16
+        Collection<SetMembers> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMembers("1", "uno"));
+        membersCollection.add(new SetMembers("2", "uno2"));
+        membersCollection.add(new SetMembers("3", "uno3"));
+
+        dataBase.zadd("key1", membersCollection);
+        dataBase.zadd("key2", new ArrayList<>());
+
+        assertEquals(3, dataBase.zcard("key1"));
+        assertEquals(0, dataBase.zcard("key2"));
+    }
+
+    //zrank
+    @Test
+    void shouldGetCorrectRankForMemberKeyInKey() {
+        Collection<SetMembers> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMembers("1", "uno"));
+        membersCollection.add(new SetMembers("2", "uno2"));
+        membersCollection.add(new SetMembers("3", "uno3"));
+
+        dataBase.zadd("key1", membersCollection);
+        dataBase.zadd("key2", new ArrayList<>());
+
+        assertEquals(0, dataBase.zrank("key1", "uno"));
+        assertEquals(1, dataBase.zrank("key1", "uno2"));
+        assertEquals(2, dataBase.zrank("key1", "uno3"));
+        assertEquals(-1, dataBase.zrank("key1", "fake"));
+        assertEquals(-1, dataBase.zrank("fake", "uno"));
     }
 }

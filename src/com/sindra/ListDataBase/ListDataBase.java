@@ -64,6 +64,35 @@ public class ListDataBase implements DataBase {
         return filterSortedSetByKey(memberKey, treeSet);
     }
 
+    @Override
+    public ArrayList<SetMembers> zrange(String key, int first, int last) {
+        TreeSet<SetMembers> set = zget(key);
+        if (set != null) {
+            if(last < 0) last = set.size() + last;
+            return getSubSetFromSortedSetByIndex(set, first, last);
+        }
+        return new ArrayList<>();
+    }
+
+    private ArrayList<SetMembers> getSubSetFromSortedSetByIndex(
+            TreeSet<SetMembers> treeSet, int firstIndex, int lastIndex) {
+        Iterator<SetMembers> it = treeSet.iterator();
+        ArrayList<SetMembers> subset = new ArrayList<>();
+
+        if(firstIndex > lastIndex) return subset;
+
+        int i = 0;
+        while(it.hasNext() && i <= lastIndex) {
+            SetMembers next = it.next();
+
+            if(i >= firstIndex) subset.add(next);
+
+            i++;
+        }
+
+        return subset;
+    }
+
     private int filterSortedSetByKey(String memberKey, TreeSet<SetMembers> treeSet) {
         SetMembers member = treeSet.stream().filter(
                 customer -> customer.getKey().equals(memberKey))

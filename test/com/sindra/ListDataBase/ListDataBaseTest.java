@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -214,4 +215,50 @@ class ListDataBaseTest {
         assertEquals(-1, dataBase.zrank("key1", "fake"));
         assertEquals(-1, dataBase.zrank("fake", "uno"));
     }
+
+    //zrange
+    @Test
+    void shouldGetCorrectRangeForKey() {
+        Collection<SetMembers> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMembers("1", "uno"));
+        membersCollection.add(new SetMembers("2", "uno2"));
+        membersCollection.add(new SetMembers("3", "uno3"));
+
+        dataBase.zadd("key1", membersCollection);
+
+        ArrayList<SetMembers> set = dataBase.zrange("key1", 1, 2);
+        assertEquals("uno2", set.get(0).getKey());
+        assertEquals("uno3", set.get(1).getKey());
+        assertEquals(2, set.size());
+    }
+
+    @Test
+    void shouldGetAllFromRangeUpToLast() {
+        Collection<SetMembers> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMembers("1", "uno"));
+        membersCollection.add(new SetMembers("2", "uno2"));
+        membersCollection.add(new SetMembers("3", "uno3"));
+
+        dataBase.zadd("key1", membersCollection);
+
+        ArrayList<SetMembers> set = dataBase.zrange("key1", 0, -1);
+        assertEquals("uno", set.get(0).getKey());
+        assertEquals("uno2", set.get(1).getKey());
+        assertEquals("uno3", set.get(2).getKey());
+        assertEquals(3, set.size());
+    }
+
+    @Test
+    void shouldGetRangeEmpty() {
+        Collection<SetMembers> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMembers("1", "uno"));
+        membersCollection.add(new SetMembers("2", "uno2"));
+        membersCollection.add(new SetMembers("3", "uno3"));
+
+        dataBase.zadd("key1", membersCollection);
+
+        ArrayList<SetMembers> set = dataBase.zrange("key1", 2, 1);
+        assertEquals(0, set.size());
+    }
+
 }

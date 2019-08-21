@@ -2,6 +2,7 @@ package com.sindra;
 
 import com.sindra.ListDataBase.DataTypes.SetMembers;
 
+import java.util.ArrayList;
 import java.util.Collection;
 
 public interface DataBase<type> {
@@ -11,6 +12,7 @@ public interface DataBase<type> {
     void zadd(String key, Collection<SetMembers> members);
     int zcard(String key);
     int zrank(String key, String memberKey);
+    ArrayList<SetMembers> zrange(String key, int first, int last);
     void del(String[] keys);
     int dbSize();
     void incr(String key);

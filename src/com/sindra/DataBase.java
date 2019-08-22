@@ -6,8 +6,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 public interface DataBase<type> {
-    type getData();
+    type getHashMap();
     void set(String key, String keyValue);
+    void set(String key, String keyValue, int expirationInSeconds);
     String get(String key);
     void zadd(String key, Collection<SetMembers> members);
     int zcard(String key);
@@ -15,5 +16,5 @@ public interface DataBase<type> {
     ArrayList<SetMembers> zrange(String key, int first, int last);
     void del(String[] keys);
     int dbSize();
-    void incr(String key);
+    boolean incr(String key);
 }

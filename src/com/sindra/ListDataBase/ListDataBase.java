@@ -1,52 +1,87 @@
 package com.sindra.ListDataBase;
 
+import com.sindra.Data;
 import com.sindra.DataBase;
 import com.sindra.ListDataBase.DataTypes.SetMembers;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ListDataBase implements DataBase {
-    private final ConcurrentHashMap<String, AtomicReference> data;
+    private volatile ConcurrentHashMap<String, Data> hashMap;
 
     ListDataBase() {
-        this.data = new ConcurrentHashMap<>();
+        this.hashMap = new ConcurrentHashMap<>();
+        ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
+        ses.scheduleAtFixedRate(this::checkForExpiredData, 0, 1, TimeUnit.SECONDS);
+    }
+
+    private void checkForExpiredData() {
+        Iterator<String> it = hashMap.keys().asIterator();
+
+        while(it.hasNext()) {
+            String next = it.next();
+
+            Data data = getData(next);
+            if(data.getExpiration() < System.currentTimeMillis() && data.expires()) del(new String[]{next});
+        }
     }
 
     @Override
-    public final Object getData() {
-        return data;
+    public final ConcurrentHashMap<String, Data> getHashMap() {
+        return hashMap;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public synchronized void set(String key, String keyValue) {
-        AtomicReference referenceToString = data.get(key);
-        if(referenceToString != null && referenceToString.get() instanceof String) {
-            referenceToString.set((keyValue));
-        } else {
-            data.put(key, new AtomicReference<>(keyValue));
-        }
+        Data data = getData(key);
+        AtomicReference referenceToString = data.getReference();
+        if(referenceToString.get() != null) {
+            if(referenceToString.get() instanceof String) {
+                referenceToString.set((keyValue));
+                data.setExpires(false);
+            }
+        } else hashMap.put(key, new Data(keyValue));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public synchronized void set(String key, String keyValue, int expirationTime) {
+        Data data = getData(key);
+        AtomicReference referenceToString = data.getReference();
+        if(referenceToString.get() != null) {
+            if(referenceToString.get() instanceof String) {
+                referenceToString.set(keyValue);
+                data.setExpiration(expirationTime);
+                data.setExpires(true);
+            }
+        } else hashMap.put(key, new Data(keyValue, expirationTime));
     }
 
     @Override
     public String get(String key) {
-        AtomicReference atomicReference = data.get(key);
+        AtomicReference atomicReference = getData(key).getReference();
         if(atomicReference != null) {
-            Object o = data.get(key).get();
-            if (o instanceof String) return (String) data.get(key).get();
+            Object o = atomicReference.get();
+            if (o instanceof String) return (String) atomicReference.get();
         }
         return null;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public synchronized void zadd(String key, Collection members) {
-        AtomicReference referenceToString = data.get(key);
-        if(referenceToString != null && referenceToString.get() instanceof TreeSet) {
-            referenceToString.set((members));
+        AtomicReference referenceToString = getData(key).getReference();
+        if(referenceToString.get() != null) {
+            if(referenceToString.get() instanceof TreeSet) referenceToString.set((members));
         } else {
             TreeSet<SetMembers> sortedSet = new TreeSet<>(members);
-            data.put(key, new AtomicReference<>(sortedSet));
+            hashMap.put(key, new Data(sortedSet));
         }
     }
 
@@ -101,12 +136,13 @@ public class ListDataBase implements DataBase {
         return treeSet.contains(member) ? treeSet.headSet(member).size() : -1;
     }
 
-    private TreeSet zget(String key) {
-        AtomicReference atomicReference = data.get(key);
+    @SuppressWarnings("unchecked")
+    private TreeSet<SetMembers> zget(String key) {
+        AtomicReference atomicReference = getData(key).getReference();
         if(atomicReference != null) {
             Object o = atomicReference.get();
             if (o instanceof TreeSet) {
-                return (TreeSet) o;
+                return (TreeSet<SetMembers>) o;
             }
         }
         return null;
@@ -115,23 +151,47 @@ public class ListDataBase implements DataBase {
     @Override
     public synchronized void del(String[] keys) {
         for (String key : keys) {
-            data.remove(key);
+            hashMap.remove(key);
         }
     }
 
     @Override
     public int dbSize() {
-        return data.size();
+        return hashMap.size();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public synchronized void incr(String key) {
-        AtomicReference reference = data.get(key);
-        if(reference != null && reference.get() instanceof String) {
-            reference.getAndUpdate(
+    public synchronized boolean incr(String key) {
+        Data data = getData(key);
+        AtomicReference reference = data.getReference();
+        if(reference.get() != null) {
+            boolean referenceIsStringOfNumber = reference.get() instanceof String
+                    && canParseInt((String) reference.get());
+            if(referenceIsStringOfNumber) {
+                reference.getAndUpdate(
                     oldValue -> String.valueOf(Integer.parseInt((String) oldValue) + 1));
+                return true;
+            } else return false;
         } else {
-            set(key, "1");
+            set(key, "1", 0);
+            return true;
         }
+    }
+
+    private boolean canParseInt(String value) {
+        try {
+            Integer.parseInt(value);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    private Data getData(String key) {
+        Data data = hashMap.get(key);
+
+        if(data == null) data = new Data(null);
+        return data;
     }
 }

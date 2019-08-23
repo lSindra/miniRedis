@@ -3,15 +3,17 @@ package com.sindra.MapDataBase;
 import com.sindra.Data;
 import com.sindra.DataBase;
 import com.sindra.MapDataBase.DataTypes.SetMembers;
+import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+@Service("Database")
 public class MapDataBase implements DataBase {
     private final ConcurrentHashMap<String, Data> hashMap;
 
-    MapDataBase() {
+    public MapDataBase() {
         this.hashMap = new ConcurrentHashMap<>();
         new DataExpirationChecker(this, 1);
     }

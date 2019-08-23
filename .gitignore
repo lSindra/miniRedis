@@ -45,6 +45,7 @@ cmake-build-*/
 
 # IntelliJ
 out/
+project/target/*
 
 # mpeltonen/sbt-idea plugin
 .idea_modules/
@@ -66,3 +67,21 @@ fabric.properties
 
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
+
+*.sw?
+.#*
+*#
+*~
+.classpath
+.project
+.settings
+bin
+build
+target
+dependency-reduced-pom.xml
+*.sublime-*
+/scratch
+.gradle
+README.html
+*.iml
+.idea

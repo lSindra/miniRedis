@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 public class Controller {
 
     @Autowired
-    DataBase database;
+    private DataBase database;
 
     private static final String OK = "OK";
 

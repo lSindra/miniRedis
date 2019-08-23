@@ -1,6 +1,6 @@
 package com.sindra;
 
-import com.sindra.ListDataBase.DataTypes.SetMembers;
+import com.sindra.MapDataBase.DataTypes.SetMembers;
 
 import java.util.ArrayList;
 import java.util.Collection;

@@ -1,8 +1,8 @@
-package com.sindra.ListDataBase;
+package com.sindra.MapDataBase;
 
 import com.sindra.Data;
 import com.sindra.DataBase;
-import com.sindra.ListDataBase.DataTypes.SetMembers;
+import com.sindra.MapDataBase.DataTypes.SetMembers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -13,28 +13,29 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.Thread.sleep;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-class ListDataBaseTest {
+class MapDataBaseTest {
 
     private DataBase dataBase;
 
     @BeforeEach
     void setUp() {
-        dataBase = new ListDataBase();
+        dataBase = new MapDataBase();
     }
 
     //SET
     @Test
     void shouldBeEmpty() {
-        ConcurrentHashMap<String, Data> data = ((ListDataBase) dataBase).getHashMap();
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
         assert(data.isEmpty());
     }
 
     @Test
     void shouldHaveSizeOne() {
         dataBase.set("key", "1");
-        ConcurrentHashMap<String, Data> data = ((ListDataBase) dataBase).getHashMap();
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
         assertEquals(1, data.size());
     }
 
@@ -42,7 +43,7 @@ class ListDataBaseTest {
     void shouldSetKeyValue() {
         dataBase.set("key1", "1");
         dataBase.set("key2", "2");
-        ConcurrentHashMap<String, Data> data = ((ListDataBase) dataBase).getHashMap();
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
         AtomicReference key1 = data.get("key1").getReference();
         AtomicReference key2 = data.get("key2").getReference();
         if(key1.get().equals("1") && key2.get().equals("2")) assert(true);
@@ -53,7 +54,7 @@ class ListDataBaseTest {
     void shouldSetRepeatedKeyWithChangedValue() {
         dataBase.set("key1", "1");
         dataBase.set("key1", "2");
-        ConcurrentHashMap<String, Data> data = ((ListDataBase) dataBase).getHashMap();
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
         AtomicReference key1 = data.get("key1").getReference();
         if(key1.get().equals("2")) assert(true);
         else assert(false);
@@ -69,19 +70,47 @@ class ListDataBaseTest {
         dataBase.zadd("key1", membersCollection);
         dataBase.set("key1", "2");
 
-        ConcurrentHashMap<String, Data> data = ((ListDataBase) dataBase).getHashMap();
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
         assertEquals(1, data.size());
         assert((data.get("key1").getReference()).get() instanceof TreeSet);
     }
 
-    //SET
+    //SET EXPIRATION
     @Test
     void shouldExpire() throws InterruptedException {
         dataBase.set("key", "1", 1);
-        ConcurrentHashMap<String, Data> data = ((ListDataBase) dataBase).getHashMap();
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
         assert(!data.isEmpty());
-        sleep(2000);
+        sleep(500);
+        assert(!data.isEmpty());
+        sleep(1500);
         assert(data.isEmpty());
+    }
+
+    @Test
+    void shouldOverrideExpiration() throws InterruptedException {
+        dataBase.set("key", "1", 1);
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
+        assert(!data.isEmpty());
+        sleep(500);
+        assert(!data.isEmpty());
+        dataBase.set("key", "1", 1);
+        sleep(500);
+        assert(!data.isEmpty());
+        sleep(1500);
+        assert(data.isEmpty());
+    }
+
+    @Test
+    void shouldNeverExpire() throws InterruptedException {
+        dataBase.set("key", "1", 1);
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
+        assert(!data.isEmpty());
+        sleep(500);
+        assert(!data.isEmpty());
+        dataBase.set("key", "1");
+        sleep(1500);
+        assert(!data.isEmpty());
     }
 
     //GET
@@ -174,7 +203,7 @@ class ListDataBaseTest {
 
         dataBase.zadd("key1", membersCollection);
 
-        ConcurrentHashMap<String, Data> data = ((ListDataBase) dataBase).getHashMap();
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
         Collection key = (Collection) data.get("key1").getReference().get();
         assertEquals(3, key.size());
     }
@@ -188,8 +217,9 @@ class ListDataBaseTest {
 
         dataBase.zadd("key1", membersCollection);
 
-        ConcurrentHashMap<String, Data> data = (ConcurrentHashMap<String, Data>) dataBase.getHashMap();
-        AtomicReference<Collection<SetMembers>> key = (AtomicReference<Collection<SetMembers>>) data.get("key1").getReference();
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
+        AtomicReference<Collection<SetMembers>> key =
+                (AtomicReference<Collection<SetMembers>>) data.get("key1").getReference();
 
         assertEquals(1, data.size());
         assertEquals(3, key.get().size());
@@ -219,8 +249,9 @@ class ListDataBaseTest {
 
         dataBase.zadd("key1", membersCollection);
 
-        ConcurrentHashMap<String, Data> data = ((ListDataBase) dataBase).getHashMap();
-        AtomicReference<Collection<SetMembers>> key = (AtomicReference<Collection<SetMembers>>) data.get("key1").getReference();
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
+        AtomicReference<Collection<SetMembers>> key =
+                (AtomicReference<Collection<SetMembers>>) data.get("key1").getReference();
         assertEquals(5, key.get().size());
 
         Object[] members = key.get().toArray();
@@ -241,14 +272,14 @@ class ListDataBaseTest {
         dataBase.set("key1", "1");
         dataBase.zadd("key1", membersCollection);
 
-        ConcurrentHashMap<String, Data> data = ((ListDataBase) dataBase).getHashMap();
+        ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
         assertEquals(1, data.size());
-        assert(((AtomicReference) data.get("key1").getReference()).get() instanceof String);
+        assert(( data.get("key1").getReference()).get() instanceof String);
     }
 
     //zcard
     @Test
-    void shouldGetCorrectSortedSetSize() { //todo taking too long, 16
+    void shouldGetCorrectSortedSetSize() {
         Collection<SetMembers> membersCollection = new ArrayList<>();
         membersCollection.add(new SetMembers("1", "uno"));
         membersCollection.add(new SetMembers("2", "uno2"));
@@ -323,5 +354,4 @@ class ListDataBaseTest {
         ArrayList<SetMembers> set = dataBase.zrange("key1", 2, 1);
         assertEquals(0, set.size());
     }
-
 }

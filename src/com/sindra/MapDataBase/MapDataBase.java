@@ -1,34 +1,19 @@
-package com.sindra.ListDataBase;
+package com.sindra.MapDataBase;
 
 import com.sindra.Data;
 import com.sindra.DataBase;
-import com.sindra.ListDataBase.DataTypes.SetMembers;
+import com.sindra.MapDataBase.DataTypes.SetMembers;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class ListDataBase implements DataBase {
-    private volatile ConcurrentHashMap<String, Data> hashMap;
+public class MapDataBase implements DataBase {
+    private final ConcurrentHashMap<String, Data> hashMap;
 
-    ListDataBase() {
+    MapDataBase() {
         this.hashMap = new ConcurrentHashMap<>();
-        ScheduledExecutorService ses = Executors.newSingleThreadScheduledExecutor();
-        ses.scheduleAtFixedRate(this::checkForExpiredData, 0, 1, TimeUnit.SECONDS);
-    }
-
-    private void checkForExpiredData() {
-        Iterator<String> it = hashMap.keys().asIterator();
-
-        while(it.hasNext()) {
-            String next = it.next();
-
-            Data data = getData(next);
-            if(data.getExpiration() < System.currentTimeMillis() && data.expires()) del(new String[]{next});
-        }
+        new DataExpirationChecker(this, 1);
     }
 
     @Override
@@ -87,7 +72,7 @@ public class ListDataBase implements DataBase {
 
     @Override
     public int zcard(String key) {
-        return Objects.requireNonNull(zget(key)).size();//todo make sure
+        return Objects.requireNonNull(zget(key)).size();
     }
 
     @Override
@@ -188,7 +173,7 @@ public class ListDataBase implements DataBase {
         }
     }
 
-    private Data getData(String key) {
+    Data getData(String key) {
         Data data = hashMap.get(key);
 
         if(data == null) data = new Data(null);

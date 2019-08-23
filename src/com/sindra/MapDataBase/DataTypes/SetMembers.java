@@ -1,16 +1,12 @@
-package com.sindra.ListDataBase.DataTypes;
+package com.sindra.MapDataBase.DataTypes;
 
-public class SetMembers implements Comparable<SetMembers> { //TODO make atomic
+public class SetMembers implements Comparable<SetMembers> {
     private String score;
     private String key;
 
     public SetMembers(String score, String key) {
         this.score = score;
         this.key = key;
-    }
-
-    public String getScore() {
-        return score;
     }
 
     public String getKey() {

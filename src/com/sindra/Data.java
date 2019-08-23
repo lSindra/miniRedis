@@ -25,6 +25,10 @@ public class Data {
         return expiration;
     }
 
+    public void setExpiration(int expirationTime) {
+        this.expiration = getExpirationFromLife(expirationTime);
+    }
+
     public boolean expires() {
         return expires;
     }
@@ -35,13 +39,5 @@ public class Data {
 
     public AtomicReference getReference() {
         return reference;
-    }
-
-    public void setReference(Object object) {
-        this.reference = new AtomicReference(object);
-    }
-
-    public void setExpiration(int expirationTime) {
-        this.expiration = getExpirationFromLife(expirationTime);
     }
 }

@@ -2,7 +2,7 @@ package com.sindra.MapDataBase;
 
 import com.sindra.Data;
 import com.sindra.DataBase;
-import com.sindra.MapDataBase.DataTypes.SetMembers;
+import com.sindra.MapDataBase.DataTypes.SetMember;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -62,24 +62,43 @@ public class MapDataBase implements DataBase {
 
     @SuppressWarnings("unchecked")
     @Override
-    public synchronized void zadd(String key, Collection members) {
+    public synchronized int zadd(String key, Collection members) {
         AtomicReference referenceToString = getData(key).getReference();
         if(referenceToString.get() != null) {
-            if(referenceToString.get() instanceof TreeSet) referenceToString.set((members));
-        } else {
-            TreeSet<SetMembers> sortedSet = new TreeSet<>(members);
+            if(referenceToString.get() instanceof TreeSet) {
+                return addMembersToSet((Collection<SetMember>) members, (TreeSet) referenceToString.get());
+            }
+        } else if(members.size() > 0){
+            TreeSet<SetMember> sortedSet = new TreeSet<>(members);
             hashMap.put(key, new Data(sortedSet));
+            return members.size();
         }
+        return 0;
+    }
+
+    private int addMembersToSet(Collection<SetMember> members, TreeSet<SetMember> set) {
+        int updated = 0;
+        for (SetMember setMember : members) {
+            if(setMember.isValid()) {
+                if(!set.contains(setMember)) {
+                    set.add(setMember);
+                    updated++;
+                }
+            }
+        }
+        return updated;
     }
 
     @Override
     public int zcard(String key) {
-        return Objects.requireNonNull(zget(key)).size();
+        TreeSet<SetMember> setMembers = zget(key);
+        if(setMembers == null) return 0;
+        return setMembers.size();
     }
 
     @Override
     public int zrank(String key, String memberKey) {
-        TreeSet<SetMembers> treeSet = zget(key);
+        TreeSet<SetMember> treeSet = zget(key);
 
         if(treeSet == null) return -1;
 
@@ -87,8 +106,8 @@ public class MapDataBase implements DataBase {
     }
 
     @Override
-    public ArrayList<SetMembers> zrange(String key, int first, int last) {
-        TreeSet<SetMembers> set = zget(key);
+    public ArrayList<SetMember> zrange(String key, int first, int last) {
+        TreeSet<SetMember> set = zget(key);
         if (set != null) {
             if(last < 0) last = set.size() + last;
             return getSubSetFromSortedSetByIndex(set, first, last);
@@ -96,16 +115,16 @@ public class MapDataBase implements DataBase {
         return new ArrayList<>();
     }
 
-    private ArrayList<SetMembers> getSubSetFromSortedSetByIndex(
-            TreeSet<SetMembers> treeSet, int firstIndex, int lastIndex) {
-        Iterator<SetMembers> it = treeSet.iterator();
-        ArrayList<SetMembers> subset = new ArrayList<>();
+    private ArrayList<SetMember> getSubSetFromSortedSetByIndex(
+            TreeSet<SetMember> treeSet, int firstIndex, int lastIndex) {
+        Iterator<SetMember> it = treeSet.iterator();
+        ArrayList<SetMember> subset = new ArrayList<>();
 
         if(firstIndex > lastIndex) return subset;
 
         int i = 0;
         while(it.hasNext() && i <= lastIndex) {
-            SetMembers next = it.next();
+            SetMember next = it.next();
 
             if(i >= firstIndex) subset.add(next);
 
@@ -115,31 +134,33 @@ public class MapDataBase implements DataBase {
         return subset;
     }
 
-    private int filterSortedSetByKey(String memberKey, TreeSet<SetMembers> treeSet) {
-        SetMembers member = treeSet.stream().filter(
+    private int filterSortedSetByKey(String memberKey, TreeSet<SetMember> treeSet) {
+        SetMember member = treeSet.stream().filter(
                 customer -> customer.getKey().equals(memberKey))
-                .findAny().orElse(new SetMembers("0", "null"));
+                .findAny().orElse(new SetMember("0", "null"));
 
         return treeSet.contains(member) ? treeSet.headSet(member).size() : -1;
     }
 
     @SuppressWarnings("unchecked")
-    private TreeSet<SetMembers> zget(String key) {
+    private TreeSet<SetMember> zget(String key) {
         AtomicReference atomicReference = getData(key).getReference();
         if(atomicReference != null) {
             Object o = atomicReference.get();
             if (o instanceof TreeSet) {
-                return (TreeSet<SetMembers>) o;
+                return (TreeSet<SetMember>) o;
             }
         }
         return null;
     }
 
     @Override
-    public synchronized void del(String[] keys) {
+    public synchronized int del(String[] keys) {
+        int found = 0;
         for (String key : keys) {
-            hashMap.remove(key);
+            if(hashMap.remove(key) != null) found++;
         }
+        return found;
     }
 
     @Override
@@ -149,20 +170,19 @@ public class MapDataBase implements DataBase {
 
     @SuppressWarnings("unchecked")
     @Override
-    public synchronized boolean incr(String key) {
+    public synchronized String incr(String key) {
         Data data = getData(key);
         AtomicReference reference = data.getReference();
         if(reference.get() != null) {
             boolean referenceIsStringOfNumber = reference.get() instanceof String
                     && canParseInt((String) reference.get());
             if(referenceIsStringOfNumber) {
-                reference.getAndUpdate(
-                    oldValue -> String.valueOf(Integer.parseInt((String) oldValue) + 1));
-                return true;
-            } else return false;
+                return (String) reference.updateAndGet(
+                        oldValue -> String.valueOf(Integer.parseInt((String) oldValue) + 1));
+            } else return "Error: value not integer";
         } else {
-            set(key, "1", 0);
-            return true;
+            set(key, "1");
+            return "1";
         }
     }
 

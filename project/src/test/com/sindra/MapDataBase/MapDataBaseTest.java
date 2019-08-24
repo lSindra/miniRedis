@@ -2,7 +2,7 @@ package com.sindra.MapDataBase;
 
 import com.sindra.Data;
 import com.sindra.DataBase;
-import com.sindra.MapDataBase.DataTypes.SetMembers;
+import com.sindra.MapDataBase.DataTypes.SetMember;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -62,10 +62,10 @@ class MapDataBaseTest {
 
     @Test
     void shouldNotOverrideTypesDifferentThanString() {
-        Collection<SetMembers> membersCollection = new ArrayList<>();
-        membersCollection.add(new SetMembers("1", "uno"));
-        membersCollection.add(new SetMembers("1", "uno2"));
-        membersCollection.add(new SetMembers("2", "uno2"));
+        Collection<SetMember> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMember("1", "uno"));
+        membersCollection.add(new SetMember("1", "uno2"));
+        membersCollection.add(new SetMember("2", "uno2"));
 
         dataBase.zadd("key1", membersCollection);
         dataBase.set("key1", "2");
@@ -132,10 +132,10 @@ class MapDataBaseTest {
 
     @Test
     void shouldGetOnlyStringType() {
-        Collection<SetMembers> membersCollection = new ArrayList<>();
-        membersCollection.add(new SetMembers("1", "uno"));
-        membersCollection.add(new SetMembers("1", "uno2"));
-        membersCollection.add(new SetMembers("2", "uno2"));
+        Collection<SetMember> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMember("1", "uno"));
+        membersCollection.add(new SetMember("1", "uno2"));
+        membersCollection.add(new SetMember("2", "uno2"));
 
         dataBase.zadd("key1", membersCollection);
         dataBase.set("key2", "2");
@@ -157,14 +157,14 @@ class MapDataBaseTest {
 
     @Test
     void shouldIncreaseNotFoundKey() {
-        assert dataBase.incr("key1");
-        assertEquals(1, Integer.parseInt(dataBase.get("key1")));
+    assertEquals("1", dataBase.incr("key1"));
+    assertEquals(1, Integer.parseInt(dataBase.get("key1")));
     }
 
     @Test
     void shouldFailOnIncrease() {
         dataBase.set("key1", "text");
-        assert !dataBase.incr("key1");
+        assertEquals("Error: value not integer", dataBase.incr("key1"));
         assertEquals("text", dataBase.get("key1"));
     }
 
@@ -196,10 +196,10 @@ class MapDataBaseTest {
     //ZADD
     @Test
     void shouldCreateSortedSetWithMembers() {
-        Collection<SetMembers> membersCollection = new ArrayList<>();
-        membersCollection.add(new SetMembers("1", "uno"));
-        membersCollection.add(new SetMembers("2", "uno2"));
-        membersCollection.add(new SetMembers("3", "uno3"));
+        Collection<SetMember> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMember("1", "uno"));
+        membersCollection.add(new SetMember("2", "uno2"));
+        membersCollection.add(new SetMember("3", "uno3"));
 
         dataBase.zadd("key1", membersCollection);
 
@@ -210,36 +210,35 @@ class MapDataBaseTest {
 
     @Test
     void shouldCreateAndUpdateSortedSetWithMembers() {
-        Collection<SetMembers> membersCollection = new ArrayList<>();
-        membersCollection.add(new SetMembers("1", "uno"));
-        membersCollection.add(new SetMembers("1", "uno2"));
-        membersCollection.add(new SetMembers("2", "uno2"));
+        Collection<SetMember> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMember("1", "uno"));
+        membersCollection.add(new SetMember("1", "uno2"));
+        membersCollection.add(new SetMember("2", "uno2"));
 
         dataBase.zadd("key1", membersCollection);
 
         ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
-        AtomicReference<Collection<SetMembers>> key =
-                (AtomicReference<Collection<SetMembers>>) data.get("key1").getReference();
+        Collection key = (Collection) data.get("key1").getReference().get();
 
         assertEquals(1, data.size());
-        assertEquals(3, key.get().size());
+        assertEquals(3, key.size());
 
-        membersCollection.add(new SetMembers("2", "uno2"));
+        membersCollection.add(new SetMember("3", "uno3"));
 
         dataBase.zadd("key1", membersCollection);
 
         assertEquals(1, data.size());
-        assertEquals(4, key.get().size());
+        assertEquals(4, key.size());
     }
 
     @Test
     void sortedSetShouldBeSortedCorrectly() {
-        Collection<SetMembers> membersCollection = new ArrayList<>();
-        SetMembers uno = new SetMembers("1", "uno");
-        SetMembers uno2 = new SetMembers("2", "uno2");
-        SetMembers uno3 = new SetMembers("2", "uno3");
-        SetMembers uno4 = new SetMembers("3", "uno4");
-        SetMembers uno5 = new SetMembers("5", "uno5");
+        Collection<SetMember> membersCollection = new ArrayList<>();
+        SetMember uno = new SetMember("1", "uno");
+        SetMember uno2 = new SetMember("2", "uno2");
+        SetMember uno3 = new SetMember("2", "uno3");
+        SetMember uno4 = new SetMember("3", "uno4");
+        SetMember uno5 = new SetMember("5", "uno5");
 
         membersCollection.add(uno5);
         membersCollection.add(uno2);
@@ -250,11 +249,10 @@ class MapDataBaseTest {
         dataBase.zadd("key1", membersCollection);
 
         ConcurrentHashMap<String, Data> data = ((MapDataBase) dataBase).getHashMap();
-        AtomicReference<Collection<SetMembers>> key =
-                (AtomicReference<Collection<SetMembers>>) data.get("key1").getReference();
-        assertEquals(5, key.get().size());
+        Collection key = (Collection) data.get("key1").getReference().get();
+        assertEquals(5, key.size());
 
-        Object[] members = key.get().toArray();
+        Object[] members = key.toArray();
         assert(members[0].equals(uno));
         assert(members[1].equals(uno2));
         assert(members[2].equals(uno3));
@@ -264,10 +262,10 @@ class MapDataBaseTest {
 
     @Test
     void shouldNotOverrideTypesDifferentThanSortedSet() {
-        Collection<SetMembers> membersCollection = new ArrayList<>();
-        membersCollection.add(new SetMembers("1", "uno"));
-        membersCollection.add(new SetMembers("1", "uno2"));
-        membersCollection.add(new SetMembers("2", "uno2"));
+        Collection<SetMember> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMember("1", "uno"));
+        membersCollection.add(new SetMember("1", "uno2"));
+        membersCollection.add(new SetMember("2", "uno2"));
 
         dataBase.set("key1", "1");
         dataBase.zadd("key1", membersCollection);
@@ -280,10 +278,10 @@ class MapDataBaseTest {
     //zcard
     @Test
     void shouldGetCorrectSortedSetSize() {
-        Collection<SetMembers> membersCollection = new ArrayList<>();
-        membersCollection.add(new SetMembers("1", "uno"));
-        membersCollection.add(new SetMembers("2", "uno2"));
-        membersCollection.add(new SetMembers("3", "uno3"));
+        Collection<SetMember> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMember("1", "uno"));
+        membersCollection.add(new SetMember("2", "uno2"));
+        membersCollection.add(new SetMember("3", "uno3"));
 
         dataBase.zadd("key1", membersCollection);
         dataBase.zadd("key2", new ArrayList<>());
@@ -295,10 +293,10 @@ class MapDataBaseTest {
     //zrank
     @Test
     void shouldGetCorrectRankForMemberKeyInKey() {
-        Collection<SetMembers> membersCollection = new ArrayList<>();
-        membersCollection.add(new SetMembers("1", "uno"));
-        membersCollection.add(new SetMembers("2", "uno2"));
-        membersCollection.add(new SetMembers("3", "uno3"));
+        Collection<SetMember> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMember("1", "uno"));
+        membersCollection.add(new SetMember("2", "uno2"));
+        membersCollection.add(new SetMember("3", "uno3"));
 
         dataBase.zadd("key1", membersCollection);
         dataBase.zadd("key2", new ArrayList<>());
@@ -313,14 +311,14 @@ class MapDataBaseTest {
     //zrange
     @Test
     void shouldGetCorrectRangeForKey() {
-        Collection<SetMembers> membersCollection = new ArrayList<>();
-        membersCollection.add(new SetMembers("1", "uno"));
-        membersCollection.add(new SetMembers("2", "uno2"));
-        membersCollection.add(new SetMembers("3", "uno3"));
+        Collection<SetMember> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMember("1", "uno"));
+        membersCollection.add(new SetMember("2", "uno2"));
+        membersCollection.add(new SetMember("3", "uno3"));
 
         dataBase.zadd("key1", membersCollection);
 
-        ArrayList<SetMembers> set = dataBase.zrange("key1", 1, 2);
+        ArrayList<SetMember> set = dataBase.zrange("key1", 1, 2);
         assertEquals("uno2", set.get(0).getKey());
         assertEquals("uno3", set.get(1).getKey());
         assertEquals(2, set.size());
@@ -328,14 +326,14 @@ class MapDataBaseTest {
 
     @Test
     void shouldGetAllFromRangeUpToLast() {
-        Collection<SetMembers> membersCollection = new ArrayList<>();
-        membersCollection.add(new SetMembers("1", "uno"));
-        membersCollection.add(new SetMembers("2", "uno2"));
-        membersCollection.add(new SetMembers("3", "uno3"));
+        Collection<SetMember> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMember("1", "uno"));
+        membersCollection.add(new SetMember("2", "uno2"));
+        membersCollection.add(new SetMember("3", "uno3"));
 
         dataBase.zadd("key1", membersCollection);
 
-        ArrayList<SetMembers> set = dataBase.zrange("key1", 0, -1);
+        ArrayList<SetMember> set = dataBase.zrange("key1", 0, -1);
         assertEquals("uno", set.get(0).getKey());
         assertEquals("uno2", set.get(1).getKey());
         assertEquals("uno3", set.get(2).getKey());
@@ -344,14 +342,14 @@ class MapDataBaseTest {
 
     @Test
     void shouldGetRangeEmpty() {
-        Collection<SetMembers> membersCollection = new ArrayList<>();
-        membersCollection.add(new SetMembers("1", "uno"));
-        membersCollection.add(new SetMembers("2", "uno2"));
-        membersCollection.add(new SetMembers("3", "uno3"));
+        Collection<SetMember> membersCollection = new ArrayList<>();
+        membersCollection.add(new SetMember("1", "uno"));
+        membersCollection.add(new SetMember("2", "uno2"));
+        membersCollection.add(new SetMember("3", "uno3"));
 
         dataBase.zadd("key1", membersCollection);
 
-        ArrayList<SetMembers> set = dataBase.zrange("key1", 2, 1);
+        ArrayList<SetMember> set = dataBase.zrange("key1", 2, 1);
         assertEquals(0, set.size());
     }
 }
